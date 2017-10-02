@@ -12,13 +12,16 @@ class ReportTurnoverCountry(models.AbstractModel):
     _description = "Turnover by country/partner"
     _inherit = 'account.report'
 
+    filter_date = {'date_from': '', 'date_to': '', 'filter': 'this_month'}
+    filter_all_entries = False
+
     def get_columns_name(self, options):
         return [{'name': _('Country')}, {'name': _('Turnover'), 'class': 'number'}]
 
     @api.model
     def get_lines(self, options, line_id=None):
         lines = []
-        tables, where_clause, where_params = self.env['account.move.line']._query_get()
+        tables, where_clause, where_params = self.env['account.move.line'].with_context(strict_range=True)._query_get()
         user_type_id = self.env['account.account.type'].search([('type', '=', 'receivable')])
         if where_clause:
             where_clause = 'AND ' + where_clause
