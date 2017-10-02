@@ -5,6 +5,7 @@ import time
 from odoo import api, models, _
 from odoo.tools.misc import formatLang
 from odoo.exceptions import UserError
+from odoo.addons.web.controllers.main import clean_action
 
 
 class ReportTurnoverCountry(models.AbstractModel):
@@ -70,6 +71,7 @@ class ReportTurnoverCountry(models.AbstractModel):
                         'id': '%s_%s' % (child_line.get('id'), child_line.get('name')),
                         'name': child_line.get('name'),
                         'level': 4,
+                        'caret_options': 'invoice',
                         'parent_id': line_id,
                         'columns': [{'name': child_line.get('balance')}]
                     })
@@ -96,3 +98,21 @@ class ReportTurnoverCountry(models.AbstractModel):
 
     def get_report_name(self):
         return _('Turnover by country/partner')
+
+    def get_templates(self):
+        templates = super(ReportTurnoverCountry, self).get_templates()
+        templates['main_template'] = 'custom_ca_reports.template_turnover_report'
+        templates['line_template'] = 'custom_ca_reports.line_template_turnover_report'
+        return templates
+
+    def open_invoices(self, options, params):
+        partner_id = int(params.get('id').split('_')[0])
+        [action] = self.env.ref('account.action_invoice_tree1').read()
+        action['context'] = self.env.context
+        action['domain'] = [
+            ('partner_id', '=', partner_id), 
+            ('date', '<=', options.get('date').get('date_to')), 
+            ('date', '>=', options.get('date').get('date_from'))
+        ]
+        action = clean_action(action)
+        return action
